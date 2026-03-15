@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Ensure clean cache
+ENV NEXT_TELEMETRY_DISABLED=1
+
 # Copy the Frontend folder into /app
 COPY Frontend/ ./
 
