@@ -1,7 +1,7 @@
 export interface AgentAuditConfig {
   price: string;
   agentId: string;
-  network: 'base' | 'base-sepolia';
+  network: 'base' | 'base-sepolia' | 'goat-testnet';
   receivingAddress: `0x${string}`;
   dashboardWebhook?: string;
   logCalls?: boolean;

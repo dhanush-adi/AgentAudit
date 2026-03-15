@@ -2,28 +2,109 @@ import express from 'express';
 import { agentAudit } from 'agentaudit';
 import * as dotenv from 'dotenv';
 import { resolve } from 'path';
+import type { CallLog } from 'agentaudit';
 
 dotenv.config({ path: resolve(__dirname, '../../../.env') });
 
 const app = express();
+app.use(express.json());
+
+// In-memory log store (last 200 calls)
+const callLogs: CallLog[] = [];
+
+// CORS for local frontend dev
+app.use((_req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
+  next();
+});
+
+const RECEIVING_ADDRESS = (process.env.RECEIVING_ADDRESS ||
+  '0x2962B9266a48E8F83c583caD27Be093f231781b8') as `0x${string}`;
 
 app.use(agentAudit({
   price: '0.001',
   agentId: '1',
-  network: 'base-sepolia',
-  receivingAddress: '0xDemoReceivingAddress',
-  logCalls: true, // Logs to console (no database needed)
-  onPaymentSuccess: (txHash, caller) => {
-    console.log(`Payment received from ${caller}: ${txHash}`);
-  }
+  network: 'goat-testnet',
+  receivingAddress: RECEIVING_ADDRESS,
+  logCalls: true,
+  reputationRegistry: '0x4721bEF3A4A7226E63783d6546031eCEe3D59BF0',
+  identityRegistry:   '0x3de03AB80fdDDa888598303FF34E496bD29E140F',
+  onPaymentSuccess: (txHash, caller, amount) => {
+    console.log(`✅ Payment received from ${caller}: ${txHash} ($${amount})`);
+  },
+  onPaymentFail: (reason, caller) => {
+    const log: CallLog = {
+      agent_id: '1',
+      caller_address: caller,
+      endpoint: 'unknown',
+      amount_usdc: '0.001',
+      tx_hash: null,
+      status: 'rejected',
+      latency_ms: 0,
+      payment_payload: { reason },
+    };
+    callLogs.unshift(log);
+    if (callLogs.length > 200) callLogs.pop();
+  },
 }));
 
-app.get('/analyze', (_req, res) => {
+// ── Paid endpoints ─────────────────────────────────────────
+
+app.get('/analyze', (req, res) => {
+  const log: CallLog = {
+    agent_id: '1',
+    caller_address: req.headers['x-caller-address'] as string || 'unknown',
+    endpoint: '/analyze',
+    amount_usdc: '0.001',
+    tx_hash: req.headers['x-tx-hash'] as string || null,
+    status: 'verified',
+    latency_ms: Math.floor(Math.random() * 80 + 20),
+    payment_payload: {},
+  };
+  callLogs.unshift(log);
+  if (callLogs.length > 200) callLogs.pop();
   res.json({ result: 'Analysis complete', sentiment: 'positive', confidence: 0.92 });
 });
 
-app.get('/summarize', (_req, res) => {
-  res.json({ summary: 'This is a demo AI agent API secured by AgentAudit.' });
+app.get('/summarize', (req, res) => {
+  const log: CallLog = {
+    agent_id: '1',
+    caller_address: req.headers['x-caller-address'] as string || 'unknown',
+    endpoint: '/summarize',
+    amount_usdc: '0.001',
+    tx_hash: req.headers['x-tx-hash'] as string || null,
+    status: 'verified',
+    latency_ms: Math.floor(Math.random() * 60 + 10),
+    payment_payload: {},
+  };
+  callLogs.unshift(log);
+  if (callLogs.length > 200) callLogs.pop();
+  res.json({ summary: 'This is a demo AI agent API secured by AgentAudit on GOAT Network.' });
 });
 
-app.listen(3001, () => console.log('Demo agent running on :3001'));
+// ── Public endpoint — Dashboard polls this ─────────────────
+app.get('/logs', (_req, res) => {
+  res.json({
+    logs: callLogs.slice(0, 50),
+    totalCalls: callLogs.length,
+    totalEarned: (callLogs.filter(l => l.status === 'verified').length * 0.001).toFixed(3),
+    status: 'online',
+  });
+});
+
+// ── Health check ───────────────────────────────────────────
+app.get('/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    agentId: '1',
+    network: 'GOAT Testnet3',
+    contracts: {
+      agentRegistry:      '0x3de03AB80fdDDa888598303FF34E496bD29E140F',
+      reputationRegistry: '0x4721bEF3A4A7226E63783d6546031eCEe3D59BF0',
+      validationRegistry: '0x9facA0523F1CEc547CE5e00a808338bF67a46924',
+    },
+  });
+});
+
+app.listen(3001, () => console.log('🤖 AgentAudit demo-agent running on :3001'));

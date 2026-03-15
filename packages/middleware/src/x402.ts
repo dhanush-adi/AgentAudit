@@ -33,7 +33,9 @@ export async function settlePayment(paymentHeader: string, resource: string): Pr
 
 export function build402Response(price: string, receivingAddress: string, resource: string, network: string) {
   const amountInMicroUSDC = Math.round(parseFloat(price) * 1_000_000).toString();
-  const networkId = network === 'base' ? 'eip155:8453' : 'eip155:84532';
+  const networkId = network === 'base' ? 'eip155:8453' : 
+                    network === 'goat-testnet' ? 'eip155:48816' : 
+                    'eip155:84532';
   
   return {
     x402Version: 1,
