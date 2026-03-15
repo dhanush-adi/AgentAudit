@@ -1,0 +1,22 @@
+* Host localhost:3001 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+*   Trying [::1]:3001...
+* Connected to localhost (::1) port 3001
+> GET /analyze HTTP/1.1
+> Host: localhost:3001
+> User-Agent: curl/8.5.0
+> Accept: */*
+> 
+< HTTP/1.1 402 Payment Required
+< X-Powered-By: Express
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 402
+< ETag: W/"192-ZspLPBzK+1NeC95regvZwKe1zQE"
+< Date: Sun, 15 Mar 2026 09:47:00 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [402 bytes data]
+* Connection #0 to host localhost left intact
+{"x402Version":1,"error":"Payment required","accepts":[{"scheme":"exact","network":"eip155:84532","maxAmountRequired":"1000","resource":"http://localhost:3001/analyze","description":"AgentAudit: pay-per-call AI agent API","mimeType":"application/json","payTo":"0xDemoReceivingAddress","maxTimeoutSeconds":300,"asset":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","extra":{"name":"USDC","version":"2"}}]}
