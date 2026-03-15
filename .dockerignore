@@ -1,14 +1,5 @@
 node_modules
 .next
-dist
 .git
-.gitignore
-.env.local
-.DS_Store
+.turbo
 *.log
-npm-debug.log*
-.vercel
-.idea
-.vscode
-packages/contracts
-packages/middleware
