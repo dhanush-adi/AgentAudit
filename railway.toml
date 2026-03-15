@@ -2,6 +2,6 @@
 dockerfile = "Dockerfile"
 
 [deploy]
-startCommand = "PORT=$PORT npm start"
+startCommand = "npm start"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
