@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  PieChart, Pie, Cell
 } from 'recharts';
 
 // ── Types ──────────────────────────────────────────────────
@@ -33,6 +34,20 @@ interface LogsResponse {
   totalEarned: string;
   status: string;
 }
+
+// ── Styling Constants (Partner's Palette) ──────────────────
+const CHART_COLORS = ['#6366f1', '#06b6d4', '#ec4899'];
+const BG_MAIN    = '#08091a';        // very deep navy
+const BG_SIDEBAR = '#0a0d22';        // slightly lighter navy
+const BG_CARD    = 'rgba(14,18,52,0.85)';
+const BG_NAV     = 'rgba(10,13,34,0.85)';
+
+const INDIGO     = '#6366f1';
+const CYAN       = '#06b6d4';
+const PINK       = '#ec4899';
+const EMERALD    = '#34d399';
+
+const navItems = ['Dashboard', 'Agents', 'Analytics', 'Reports', 'Settings'];
 
 // ── Dashboard ──────────────────────────────────────────────
 export default function Dashboard() {
@@ -78,13 +93,19 @@ export default function Dashboard() {
     chartData.push({ name: '/analyze', calls: 0 }, { name: '/summarize', calls: 0 });
   }
 
+  const pieData = [
+    { name: 'Verified', value: logs.filter(l => l.status === 'verified').length || 1 },
+    { name: 'Rejected', value: logs.filter(l => l.status === 'rejected').length || 0 },
+    { name: 'Pending',  value: logs.filter(l => l.status === 'pending').length || 0 },
+  ];
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
 
   const statCards = [
@@ -93,191 +114,354 @@ export default function Dashboard() {
       value: totalCalls.toLocaleString(),
       subtitle: agentOnline ? '🟢 Agent Online' : '🔴 Agent Offline',
       icon: Activity,
-      bgColor: '#2962ff',
+      accent: CYAN,
     },
     {
       title: 'Total Earned (USDC)',
       value: `$${totalEarned}`,
       subtitle: '+$0.001 per verified call',
       icon: TrendingUp,
-      bgColor: '#d4af37',
+      accent: INDIGO,
     },
     {
       title: 'Agent Identity',
       value: agent ? `#${agent.agentId}` : 'Loading…',
-      subtitle: agent ? `${agent.wallet.slice(0, 10)}…${agent.wallet.slice(-6)}` : 'GOAT Testnet3',
+      subtitle: agent ? `${agent.wallet.slice(0, 10)}…` : 'GOAT Testnet3',
       icon: Users,
-      bgColor: '#7c4dff',
+      accent: PINK,
     },
     {
       title: 'Reputation Score',
       value: agent ? (agent.reputation.avgScore > 0 ? `${agent.reputation.avgScore.toFixed(1)}★` : 'N/A') : '—',
       subtitle: agent ? `${agent.reputation.feedbackCount} reviews` : 'Checking…',
       icon: BarChart3,
-      bgColor: '#00bfa5',
+      accent: EMERALD,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex">
-      {/* Sidebar */}
+    <div style={{ minHeight: '100vh', background: BG_MAIN, display: 'flex', color: '#f0f1ff' }}>
+      
+      {/* ── Sidebar ─────────────────────────────── */}
       <motion.aside
-        initial={{ x: -300 }}
+        initial={{ x: -280 }}
         animate={{ x: 0 }}
-        className={`${sidebarOpen ? 'w-64' : 'w-20'} bg-gradient-to-b from-slate-900 to-slate-950 border-r border-primary/30 p-6 fixed h-screen left-0 top-0 transition-all duration-300 z-40 flex flex-col shadow-[0_0_30px_rgba(212,175,55,0.15)]`}
+        transition={{ type: 'spring', damping: 25 }}
+        style={{
+          width: sidebarOpen ? 256 : 80,
+          background: `linear-gradient(180deg, ${BG_SIDEBAR} 0%, #060817 100%)`,
+          borderRight: '1px solid rgba(99,102,241,0.2)',
+          padding: '24px 16px',
+          position: 'fixed',
+          height: '100vh',
+          left: 0, top: 0,
+          zIndex: 40,
+          display: 'flex',
+          flexDirection: 'column',
+          transition: 'width 0.3s ease',
+          boxShadow: '4px 0 30px rgba(0,0,0,0.4)',
+        }}
       >
-        <div className="flex items-center justify-between mb-8">
-          {sidebarOpen && <h1 className="text-xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent drop-shadow-lg">AgentAudit</h1>}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-primary/10 rounded-lg text-primary/70 hover:text-primary transition-all">
-            {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+          {sidebarOpen && (
+            <span style={{
+              fontSize: 20, fontWeight: 800, letterSpacing: '-0.5px',
+              background: 'linear-gradient(135deg, #6366f1, #06b6d4)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              AgentAudit
+            </span>
+          )}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            style={{
+              background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.25)',
+              borderRadius: 8, padding: 8, cursor: 'pointer', color: '#a5aaE2',
+              transition: 'all 0.2s',
+            }}
+          >
+            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
           </button>
         </div>
-        <nav className="space-y-4 flex-1">
-          {['Dashboard', 'Agents', 'Analytics', 'Reports', 'Settings'].map((item, i) => (
-            <motion.div key={i} whileHover={{ x: 5 }}
-              className={`p-3 rounded-lg cursor-pointer transition-all ${i === 0 ? 'bg-gradient-to-r from-primary to-secondary text-background shadow-[0_0_20px_rgba(212,175,55,0.3)]' : 'hover:bg-primary/10 text-muted-foreground hover:text-primary'}`}>
+
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {navItems.map((item, i) => (
+            <motion.div
+              key={i}
+              whileHover={{ x: 4 }}
+              style={{
+                padding: '10px 12px',
+                borderRadius: 10,
+                cursor: 'pointer',
+                fontWeight: i === 0 ? 600 : 500,
+                fontSize: 14,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                color: i === 0 ? '#fff' : 'rgb(165,170,210)',
+                background:   i === 0 ? 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(6,182,212,0.15))' : 'transparent',
+                border:       i === 0 ? '1px solid rgba(99,102,241,0.35)' : '1px solid transparent',
+                transition: 'all 0.2s',
+              }}
+            >
               {sidebarOpen ? item : item[0]}
             </motion.div>
           ))}
         </nav>
+
         {/* GOAT Network badge */}
         {sidebarOpen && (
-          <a href="https://explorer.testnet3.goat.network" target="_blank" rel="noreferrer"
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-primary transition-all p-2 rounded-lg hover:bg-primary/10">
-            <RadioTower className="w-4 h-4 text-green-400" />
-            <span>GOAT Testnet3</span>
-            <ExternalLink className="w-3 h-3 ml-auto" />
-          </a>
+          <div style={{ padding: '0 12px', marginBottom: 16 }}>
+             <a href="https://explorer.testnet3.goat.network" target="_blank" rel="noreferrer"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, fontSize: 11,
+                color: 'rgb(130,135,175)', textDecoration: 'none',
+                padding: '8px 10px', borderRadius: 8, background: 'rgba(52,211,153,0.05)',
+                border: '1px solid rgba(52,211,153,0.1)',
+              }}>
+              <RadioTower className="w-3.5 h-3.5" style={{ color: EMERALD }} />
+              <span>GOAT Testnet3</span>
+              <ExternalLink className="w-3 h-3" style={{ marginLeft: 'auto' }} />
+            </a>
+          </div>
         )}
-        <motion.div whileHover={{ x: 5 }} className="p-3 mt-2 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive cursor-pointer flex items-center gap-3 transition-all">
-          <LogOut className="w-5 h-5" />
+
+        <motion.div
+          whileHover={{ x: 4 }}
+          style={{
+            padding: '10px 12px', borderRadius: 10, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10,
+            color: 'rgb(165,170,210)', fontSize: 14, fontWeight: 500,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'rgb(165,170,210)')}
+        >
+          <LogOut className="w-4 h-4" style={{ flexShrink: 0 }} />
           {sidebarOpen && 'Logout'}
         </motion.div>
       </motion.aside>
 
-      {/* Main Content */}
-      <main className={`flex-1 ${sidebarOpen ? 'ml-64' : 'ml-20'} transition-all duration-300`}>
-        {/* Top Navigation */}
-        <nav className="bg-slate-900/50 border-b border-primary/20 backdrop-blur-md p-6 sticky top-0 z-30">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-foreground">Dashboard</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Contracts on GOAT Testnet3 (Chain 48816) • Agent Registry: 0x3de0…140F
-              </p>
-            </div>
-            <div className="flex gap-4 items-center">
-              <span className={`text-xs px-3 py-1 rounded-full font-semibold ${agentOnline ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                {agentOnline ? '● Live' : '● Offline'}
+      {/* ── Main Content ────────────────────────── */}
+      <main style={{
+        flex: 1,
+        marginLeft: sidebarOpen ? 256 : 80,
+        transition: 'margin-left 0.3s ease',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        
+        {/* Top Nav */}
+        <nav style={{
+          background: BG_NAV,
+          borderBottom: '1px solid rgba(99,102,241,0.15)',
+          backdropFilter: 'blur(16px)',
+          padding: '16px 32px',
+          position: 'sticky', top: 0, zIndex: 30,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: '#f0f1ff', margin: 0 }}>Dashboard</h2>
+            <p style={{ fontSize: 11, color: 'rgb(130,135,175)', marginTop: 4 }}>
+              GOAT Chain 48816 • Identity: 0x3de0…140F
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+             <span style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+                background: agentOnline ? 'rgba(52,211,153,0.1)' : 'rgba(239,68,68,0.1)',
+                border: agentOnline ? `1px solid ${EMERALD}40` : '1px solid #ef444440',
+                color: agentOnline ? EMERALD : '#ef4444',
+                padding: '4px 12px', borderRadius: 20,
+              }}>
+                {agentOnline ? '● ONLINE' : '● OFFLINE'}
               </span>
-              <button className="p-2 hover:bg-primary/10 rounded-lg relative transition-all">
-                <Bell className="w-5 h-5 text-primary" />
-                {logs.length > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />}
-              </button>
-              <button className="p-2 hover:bg-secondary/10 rounded-lg transition-all">
-                <Settings className="w-5 h-5 text-secondary" />
-              </button>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary via-secondary to-accent shadow-[0_0_20px_rgba(212,175,55,0.5)]" />
-            </div>
+            <button style={{
+              position: 'relative', background: 'rgba(99,102,241,0.1)',
+              border: '1px solid rgba(99,102,241,0.2)', borderRadius: 8, padding: 8, cursor: 'pointer',
+            }}>
+              <Bell className="w-5 h-5" style={{ color: INDIGO }} />
+              {logs.length > 0 && (
+                <span style={{
+                  position: 'absolute', top: 6, right: 6, width: 8, height: 8,
+                  borderRadius: '50%', background: '#ef4444',
+                  boxShadow: '0 0 8px rgba(239,68,68,0.7)',
+                }} />
+              )}
+            </button>
+            <div style={{
+              width: 38, height: 38, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6366f1, #06b6d4, #ec4899)',
+              boxShadow: '0 0 16px rgba(99,102,241,0.5)',
+            }} />
           </div>
         </nav>
 
-        {/* Content */}
-        <div className="p-8 overflow-auto">
-          {/* Stats */}
-          <motion.div variants={containerVariants} initial="hidden" animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Content area */}
+        <div style={{ padding: 32, flex: 1 }}>
+          
+          {/* Stat cards */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 28 }}
+          >
             {statCards.map((card, i) => {
               const Icon = card.icon;
               return (
-                <motion.div key={i} variants={itemVariants} whileHover={{ y: -8, scale: 1.02 }}
-                  className="p-6 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-primary/30 hover:border-primary/60 transition-all shadow-[0_0_30px_rgba(212,175,55,0.1)] hover:shadow-[0_0_40px_rgba(212,175,55,0.25)]">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="p-3 rounded-lg bg-slate-700/50">
-                      <Icon className="w-6 h-6" style={{ color: card.bgColor }} />
+                <motion.div
+                  key={i}
+                  variants={itemVariants}
+                  whileHover={{ y: -6, scale: 1.02 }}
+                  style={{
+                    padding: 24, borderRadius: 16,
+                    background: 'linear-gradient(135deg, rgba(14,18,52,0.95), rgba(20,25,65,0.95))',
+                    border: `1px solid ${card.accent}33`,
+                    boxShadow: `0 4px 24px rgba(0,0,0,0.3)`,
+                    cursor: 'default',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <div style={{
+                      padding: 10, borderRadius: 12,
+                      background: `${card.accent}18`,
+                      border: `1px solid ${card.accent}30`,
+                    }}>
+                      <Icon style={{ width: 20, height: 20, color: card.accent }} />
                     </div>
                   </div>
-                  <h3 className="text-muted-foreground text-sm font-medium mb-2">{card.title}</h3>
-                  <p className="text-3xl font-bold text-foreground mb-1">{card.value}</p>
-                  <p className="text-xs text-muted-foreground">{card.subtitle}</p>
+                  <p style={{ fontSize: 12, fontWeight: 500, color: 'rgb(165,170,210)', margin: '0 0 6px' }}>{card.title}</p>
+                  <p style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '0 0 4px', lineHeight: 1 }}>{card.value}</p>
+                  <p style={{ fontSize: 11, color: 'rgb(130,135,175)', margin: 0 }}>{card.subtitle}</p>
                 </motion.div>
               );
             })}
           </motion.div>
 
-          {/* Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* API Calls Bar Chart (live) */}
-            <motion.div variants={itemVariants} initial="hidden" animate="visible"
-              className="p-6 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-secondary/30 hover:border-secondary/60 transition-all">
-              <h3 className="text-lg font-bold text-foreground mb-6">API Calls by Endpoint (Live)</h3>
-              <ResponsiveContainer width="100%" height={250}>
+          {/* Charts Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 20 }}>
+            {/* Live Calls by Endpoint */}
+            <motion.div
+              variants={itemVariants} initial="hidden" animate="visible"
+              style={{
+                padding: 24, borderRadius: 16, background: BG_CARD,
+                border: `1px solid ${INDIGO}20`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f0f1ff', margin: '0 0 20px' }}>API Calls by Endpoint (Live)</h3>
+              <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(41,98,255,0.2)" />
-                  <XAxis dataKey="name" stroke="#8b95b8" />
-                  <YAxis stroke="#8b95b8" />
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(15,15,35,0.9)', border: '1px solid rgba(41,98,255,0.3)', borderRadius: '8px' }} />
-                  <Bar dataKey="calls" fill="#2962ff" radius={[8, 8, 0, 0]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(99,102,241,0.1)" />
+                  <XAxis dataKey="name" stroke="#6b7280" tick={{ fill: '#a5a7d2', fontSize: 11 }} />
+                  <YAxis stroke="#6b7280" tick={{ fill: '#a5a7d2', fontSize: 11 }} />
+                  <Tooltip
+                    contentStyle={{ background: 'rgba(10,13,34,0.95)', border: `1px solid ${INDIGO}20`, borderRadius: 10 }}
+                  />
+                  <Bar dataKey="calls" fill={INDIGO} radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </motion.div>
 
-            {/* Live Call Feed */}
-            <motion.div variants={itemVariants} initial="hidden" animate="visible"
-              className="p-6 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-primary/30 hover:border-primary/60 transition-all">
-              <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            {/* Verification Status */}
+            <motion.div
+              variants={itemVariants} initial="hidden" animate="visible"
+              style={{
+                padding: 24, borderRadius: 16, background: BG_CARD,
+                border: `1px solid ${PINK}20`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f0f1ff', margin: '0 0 20px' }}>Verification Status</h3>
+              <ResponsiveContainer width="100%" height={260}>
+                <PieChart>
+                  <Pie data={pieData} cx="50%" cy="50%" outerRadius={80} dataKey="value" stroke="none">
+                    {pieData.map((_, index) => (
+                      <Cell key={index} fill={CHART_COLORS[index]} />
+                    ))}
+                  </Pie>
+                  <Tooltip contentStyle={{ background: 'rgba(10,13,34,0.95)', border: 'none', borderRadius: 10 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </motion.div>
+          </div>
+
+          {/* Lower Grid: Feed + Identity */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
+            {/* Live Feed */}
+            <motion.div
+              variants={itemVariants} initial="hidden" animate="visible"
+              style={{
+                padding: 24, borderRadius: 16, background: BG_CARD,
+                border: `1px solid ${CYAN}20`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+              }}
+            >
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f0f1ff', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 8, height: 8, background: EMERALD, borderRadius: '50%', boxShadow: `0 0 10px ${EMERALD}` }} />
                 Live Call Feed
               </h3>
-              <div className="space-y-2 max-h-[250px] overflow-y-auto">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 300, overflowY: 'auto' }}>
                 {logs.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">No calls yet. Try calling the demo agent at :3001</p>
+                  <p style={{ color: 'rgb(130,135,175)', fontSize: 13 }}>No calls yet. Try calling the demo agent at :3001</p>
                 ) : (
-                  logs.slice(0, 20).map((log, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs bg-slate-700/30 rounded-lg px-3 py-2">
-                      <span className={log.status === 'verified' ? 'text-green-400 font-mono' : 'text-red-400 font-mono'}>
-                        {log.status === 'verified' ? '✅' : '❌'} {log.endpoint}
+                  logs.slice(0, 15).map((log, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      fontSize: 12, background: 'rgba(255,255,255,0.03)', padding: '10px 14px', borderRadius: 10,
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {log.status === 'verified' ? (
+                          <span style={{ color: EMERALD }}>✓</span>
+                        ) : (
+                          <span style={{ color: '#ef4444' }}>×</span>
+                        )}
+                        <span style={{ fontWeight: 600 }}>{log.endpoint}</span>
                       </span>
-                      <span className="text-muted-foreground">${log.amount_usdc}</span>
-                      <span className="text-muted-foreground">{log.latency_ms}ms</span>
-                      <span className="text-muted-foreground font-mono">
-                        {log.caller_address !== 'unknown' ? `${log.caller_address.slice(0, 8)}…` : 'anon'}
+                      <span style={{ color: 'rgb(165,170,210)', fontFamily: 'monospace' }}>
+                        {log.caller_address.slice(0, 8)}…
                       </span>
+                      <span style={{ color: INDIGO, fontWeight: 700 }}>${log.amount_usdc}</span>
                     </div>
                   ))
                 )}
               </div>
             </motion.div>
-          </div>
 
-          {/* On-chain Identity */}
-          {agent && (
-            <motion.div variants={itemVariants} initial="hidden" animate="visible"
-              className="p-6 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-accent/30 mb-8">
-              <h3 className="text-lg font-bold text-foreground mb-4">On-Chain Identity (ERC-8004)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="bg-slate-700/30 rounded-lg p-3">
-                  <p className="text-muted-foreground mb-1">Agent Token ID</p>
-                  <p className="font-mono text-foreground">#{agent.agentId}</p>
+            {/* Identity */}
+            {agent && (
+              <motion.div
+                variants={itemVariants} initial="hidden" animate="visible"
+                style={{
+                  padding: 24, borderRadius: 16, background: BG_CARD,
+                  border: `1px solid ${EMERALD}20`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)',
+                }}
+              >
+                <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f0f1ff', margin: '0 0 16px' }}>On-Chain Identity</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                   <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <p style={{ fontSize: 11, color: 'rgb(130,135,175)', marginBottom: 4 }}>Agent Token ID</p>
+                      <p style={{ fontSize: 18, fontWeight: 800, color: INDIGO }}>#{agent.agentId}</p>
+                   </div>
+                   <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <p style={{ fontSize: 11, color: 'rgb(130,135,175)', marginBottom: 4 }}>Agent Wallet</p>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'monospace', wordBreak: 'break-all' }}>{agent.wallet}</p>
+                   </div>
+                   <div style={{ padding: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <p style={{ fontSize: 11, color: 'rgb(130,135,175)', marginBottom: 4 }}>Owner Address</p>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: 'monospace', wordBreak: 'break-all' }}>{agent.owner}</p>
+                   </div>
                 </div>
-                <div className="bg-slate-700/30 rounded-lg p-3">
-                  <p className="text-muted-foreground mb-1">Owner</p>
-                  <p className="font-mono text-foreground text-xs">{agent.owner}</p>
+                <div style={{ marginTop: 16 }}>
+                  <a href={`https://explorer.testnet3.goat.network/token/0x3de03AB80fdDDa888598303FF34E496bD29E140F/instance/${agent.agentId}`}
+                     target="_blank" rel="noreferrer"
+                     style={{ fontSize: 11, color: CYAN, textDecoration: 'none', fontWeight: 600 }}>
+                    View on GOAT Explorer ↗
+                  </a>
                 </div>
-                <div className="bg-slate-700/30 rounded-lg p-3">
-                  <p className="text-muted-foreground mb-1">Agent Wallet</p>
-                  <p className="font-mono text-foreground text-xs">{agent.wallet}</p>
-                </div>
-              </div>
-              <div className="mt-3 text-xs text-muted-foreground">
-                Registry: <a href={`https://explorer.testnet3.goat.network/address/0x3de03AB80fdDDa888598303FF34E496bD29E140F`}
-                  target="_blank" rel="noreferrer"
-                  className="text-primary hover:underline font-mono">
-                  0x3de0…140F ↗
-                </a>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+          </div>
         </div>
       </main>
     </div>

@@ -5,44 +5,50 @@
 
 @layer base {
   :root {
-    /* Premium Dark Theme - Deep Obsidian & Gold */
-    --background: 10 10 12;      /* Off-black background */
-    --foreground: 235 235 240;   /* Soft off-white text */
-    --card: 18 18 22;            /* Deep obsidian card */
-    --card-foreground: 245 245 250;
-    --popover: 18 18 22;
-    --popover-foreground: 245 245 250;
-    
-    /* Primary: Luxurious Gold/Amber */
-    --primary: 212 175 55;       /* Muted gold */
-    --primary-foreground: 10 10 12;
-    
-    /* Secondary: Sapphire Blue */
-    --secondary: 41 98 255;      /* Deep sapphire */
+    /* ═══════════════════════════════════════════
+       Deep Navy & Electric Indigo Theme
+       Background: Deep navy blues
+       Primary:    Electric indigo / violet
+       Secondary:  Cyan / teal
+       Accent:     Rose pink
+    ═══════════════════════════════════════════ */
+    --background: 8 10 26;          /* Very deep navy */
+    --foreground: 240 241 255;      /* Bright white-blue */
+    --card: 14 18 42;               /* Deep navy card */
+    --card-foreground: 240 241 255;
+    --popover: 14 18 42;
+    --popover-foreground: 240 241 255;
+
+    /* Primary: Electric Indigo */
+    --primary: 99 102 241;          /* indigo-500 */
+    --primary-foreground: 255 255 255;
+
+    /* Secondary: Bright Cyan */
+    --secondary: 6 182 212;         /* cyan-500 */
     --secondary-foreground: 255 255 255;
-    
-    /* Accent: Deep Violet */
-    --accent: 124 77 255;        /* Deep violet */
+
+    /* Accent: Rose Pink */
+    --accent: 236 72 153;           /* pink-500 */
     --accent-foreground: 255 255 255;
-    
-    /* Neutral colors */
-    --muted: 45 45 55;
-    --muted-foreground: 160 160 170;
-    
-    /* Borders and inputs */
-    --border: 35 35 45;
-    --input: 25 25 30;
-    --ring: 212 175 55;
-    
-    /* Chart colors (Sophisticated palette) */
-    --chart-1: 212 175 55;       /* Gold */
-    --chart-2: 41 98 255;        /* Sapphire */
-    --chart-3: 124 77 255;       /* Violet */
-    --chart-4: 0 191 165;        /* Teal */
-    --chart-5: 255 82 82;        /* Coral/Red */
-    
+
+    /* Neutrals */
+    --muted: 30 35 70;
+    --muted-foreground: 165 170 210;
+
+    /* Borders */
+    --border: 45 52 100;
+    --input: 20 25 60;
+    --ring: 99 102 241;
+
+    /* Chart palette */
+    --chart-1: 99 102 241;          /* Indigo */
+    --chart-2: 6 182 212;           /* Cyan */
+    --chart-3: 236 72 153;          /* Pink */
+    --chart-4: 52 211 153;          /* Emerald */
+    --chart-5: 251 191 36;          /* Amber */
+
     /* Destructive */
-    --destructive: 220 53 69;
+    --destructive: 239 68 68;
     --destructive-foreground: 255 255 255;
   }
 }
@@ -50,8 +56,7 @@
 @theme inline {
   --font-sans: 'Geist', 'Geist Fallback';
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  
-  /* Dark theme colors */
+
   --color-background: rgb(var(--background) / <alpha-value>);
   --color-foreground: rgb(var(--foreground) / <alpha-value>);
   --color-card: rgb(var(--card) / <alpha-value>);
@@ -78,120 +83,144 @@
   --color-chart-5: rgb(var(--chart-5) / <alpha-value>);
 }
 
+/* ═══════════════════════════════════════════
+   GLOBAL BASE — Force white text everywhere
+   on dark backgrounds
+═══════════════════════════════════════════ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    color: #ffffff !important;
+    box-sizing: border-box;
+  }
+  html, body {
+    background-color: rgb(8, 10, 26);
+    color: rgb(240, 241, 255);
   }
   body {
-    @apply bg-background text-foreground;
-    color: #ffffff !important;
+    @apply bg-background text-foreground antialiased;
+  }
+  /* Ensure ALL text elements render white by default */
+  h1, h2, h3, h4, h5, h6,
+  p, span, label, li, a,
+  td, th, div, button {
+    color: inherit;
   }
 }
 
+/* ═══════════════════════════════════════════
+   COMPONENT STYLES
+═══════════════════════════════════════════ */
 @layer components {
-  /* Glass effect with subtle sophisticated glow */
-  .glass-effect {
-    @apply bg-card/40 backdrop-blur-xl border border-border shadow-[0_4px_30px_rgba(0,0,0,0.5)];
+  .glass-card {
+    background: rgba(14, 18, 42, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255,255,255,0.06);
   }
-  
-  /* Subtle glow effects (Replacing Neon) */
-  .neon-glow-green {
-    @apply shadow-[0_0_15px_rgba(212,175,55,0.15),inset_0_0_15px_rgba(212,175,55,0.05)];
+
+  .glow-indigo {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4),
+                0 0 60px rgba(99, 102, 241, 0.15);
   }
-  
-  .neon-glow-cyan {
-    @apply shadow-[0_0_15px_rgba(41,98,255,0.15),inset_0_0_15px_rgba(41,98,255,0.05)];
+
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4),
+                0 0 60px rgba(6, 182, 212, 0.15);
   }
-  
-  .neon-glow-purple {
-    @apply shadow-[0_0_15px_rgba(124,77,255,0.15),inset_0_0_15px_rgba(124,77,255,0.05)];
+
+  .glow-pink {
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.4),
+                0 0 60px rgba(236, 72, 153, 0.15);
   }
-  
-  /* Card styles with gradients */
-  .card-gradient {
-    @apply rounded-xl border border-border bg-gradient-to-br from-card to-card/40 shadow-lg;
+
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1, #06b6d4, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-  
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.4)] hover:border-border/80;
+
+  .sidebar-item-active {
+    background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(6,182,212,0.2));
+    border: 1px solid rgba(99,102,241,0.4);
+    color: white;
   }
-  
-  /* Gradient text */
-  .gradient-text-neon {
-    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent;
+
+  .sidebar-item {
+    color: rgb(165, 170, 210);
+    transition: all 0.2s ease;
   }
-  
-  .gradient-text-cyan {
-    @apply bg-gradient-to-r from-secondary to-primary bg-clip-text text-transparent;
+  .sidebar-item:hover {
+    background: rgba(99, 102, 241, 0.12);
+    color: white;
   }
-  
-  /* Vibrant buttons (Toned down to premium) */
-  .btn-neon-green {
-    @apply bg-gradient-to-r from-primary to-yellow-600 text-background font-semibold hover:shadow-[0_4px_20px_rgba(212,175,55,0.3)];
+
+  .stat-card {
+    background: linear-gradient(135deg, rgba(14,18,42,0.9), rgba(20,25,60,0.9));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    transition: all 0.3s ease;
   }
-  
-  .btn-neon-purple {
-    @apply bg-gradient-to-r from-accent to-purple-800 text-white font-semibold hover:shadow-[0_4px_20px_rgba(124,77,255,0.3)];
+  .stat-card:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2);
   }
-  
-  /* Glowing text */
-  .neon-text {
-    @apply text-primary drop-shadow-[0_0_8px_rgba(212,175,55,0.3)];
-  }
-  
-  .neon-text-cyan {
-    @apply text-secondary drop-shadow-[0_0_8px_rgba(41,98,255,0.3)];
-  }
-  
-  /* Animated border */
-  .border-neon {
-    @apply border border-border hover:border-primary/50 transition-all;
+
+  .chart-card {
+    background: linear-gradient(135deg, rgba(14,18,42,0.9), rgba(20,25,60,0.9));
+    border: 1px solid rgba(45, 52, 100, 0.8);
   }
 }
 
+/* ═══════════════════════════════════════════
+   KEYFRAME ANIMATIONS (preserved)
+═══════════════════════════════════════════ */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
 @keyframes slideInLeft {
-  from { opacity: 0; transform: translateX(-30px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-
 @keyframes slideInRight {
-  from { opacity: 0; transform: translateX(30px); }
-  to { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  50%       { transform: translateY(-8px); }
 }
-
 @keyframes shimmer {
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
+  0%   { background-position: -1000px 0; }
+  100% { background-position:  1000px 0; }
 }
-
 @keyframes gradientShift {
   0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
 }
 
 @layer utilities {
-  .animate-in-up { animation: fadeInUp 0.6s ease-out; }
-  .animate-in-left { animation: slideInLeft 0.6s ease-out; }
-  .animate-in-right { animation: slideInRight 0.6s ease-out; }
-  .animate-float { animation: float 3s ease-in-out infinite; }
-  .animate-shimmer {
-    animation: shimmer 3s infinite;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
-    background-size: 1000px 100%;
-  }
-  .animate-gradient {
-    animation: gradientShift 3s ease infinite;
+  .animate-in-up     { animation: fadeInUp    0.5s ease-out; }
+  .animate-in-left   { animation: slideInLeft 0.5s ease-out; }
+  .animate-in-right  { animation: slideInRight 0.5s ease-out; }
+  .animate-float     { animation: float 3s ease-in-out infinite; }
+  .animate-gradient  {
+    animation: gradientShift 4s ease infinite;
     background-size: 200% 200%;
+  }
+  .animate-shimmer {
+    animation: shimmer 2.5s infinite;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(99, 102, 241, 0.08),
+      transparent
+    );
+    background-size: 1000px 100%;
   }
 }
