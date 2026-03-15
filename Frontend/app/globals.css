@@ -1,0 +1,226 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    /* ═══════════════════════════════════════════
+       Deep Navy & Electric Indigo Theme
+       Background: Deep navy blues
+       Primary:    Electric indigo / violet
+       Secondary:  Cyan / teal
+       Accent:     Rose pink
+    ═══════════════════════════════════════════ */
+    --background: 8 10 26;          /* Very deep navy */
+    --foreground: 240 241 255;      /* Bright white-blue */
+    --card: 14 18 42;               /* Deep navy card */
+    --card-foreground: 240 241 255;
+    --popover: 14 18 42;
+    --popover-foreground: 240 241 255;
+
+    /* Primary: Electric Indigo */
+    --primary: 99 102 241;          /* indigo-500 */
+    --primary-foreground: 255 255 255;
+
+    /* Secondary: Bright Cyan */
+    --secondary: 6 182 212;         /* cyan-500 */
+    --secondary-foreground: 255 255 255;
+
+    /* Accent: Rose Pink */
+    --accent: 236 72 153;           /* pink-500 */
+    --accent-foreground: 255 255 255;
+
+    /* Neutrals */
+    --muted: 30 35 70;
+    --muted-foreground: 165 170 210;
+
+    /* Borders */
+    --border: 45 52 100;
+    --input: 20 25 60;
+    --ring: 99 102 241;
+
+    /* Chart palette */
+    --chart-1: 99 102 241;          /* Indigo */
+    --chart-2: 6 182 212;           /* Cyan */
+    --chart-3: 236 72 153;          /* Pink */
+    --chart-4: 52 211 153;          /* Emerald */
+    --chart-5: 251 191 36;          /* Amber */
+
+    /* Destructive */
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+  }
+}
+
+@theme inline {
+  --font-sans: 'Geist', 'Geist Fallback';
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+
+  --color-background: rgb(var(--background) / <alpha-value>);
+  --color-foreground: rgb(var(--foreground) / <alpha-value>);
+  --color-card: rgb(var(--card) / <alpha-value>);
+  --color-card-foreground: rgb(var(--card-foreground) / <alpha-value>);
+  --color-popover: rgb(var(--popover) / <alpha-value>);
+  --color-popover-foreground: rgb(var(--popover-foreground) / <alpha-value>);
+  --color-primary: rgb(var(--primary) / <alpha-value>);
+  --color-primary-foreground: rgb(var(--primary-foreground) / <alpha-value>);
+  --color-secondary: rgb(var(--secondary) / <alpha-value>);
+  --color-secondary-foreground: rgb(var(--secondary-foreground) / <alpha-value>);
+  --color-muted: rgb(var(--muted) / <alpha-value>);
+  --color-muted-foreground: rgb(var(--muted-foreground) / <alpha-value>);
+  --color-accent: rgb(var(--accent) / <alpha-value>);
+  --color-accent-foreground: rgb(var(--accent-foreground) / <alpha-value>);
+  --color-destructive: rgb(var(--destructive) / <alpha-value>);
+  --color-destructive-foreground: rgb(var(--destructive-foreground) / <alpha-value>);
+  --color-border: rgb(var(--border) / <alpha-value>);
+  --color-input: rgb(var(--input) / <alpha-value>);
+  --color-ring: rgb(var(--ring) / <alpha-value>);
+  --color-chart-1: rgb(var(--chart-1) / <alpha-value>);
+  --color-chart-2: rgb(var(--chart-2) / <alpha-value>);
+  --color-chart-3: rgb(var(--chart-3) / <alpha-value>);
+  --color-chart-4: rgb(var(--chart-4) / <alpha-value>);
+  --color-chart-5: rgb(var(--chart-5) / <alpha-value>);
+}
+
+/* ═══════════════════════════════════════════
+   GLOBAL BASE — Force white text everywhere
+   on dark backgrounds
+═══════════════════════════════════════════ */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  html, body {
+    background-color: rgb(8, 10, 26);
+    color: rgb(240, 241, 255);
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  /* Ensure ALL text elements render white by default */
+  h1, h2, h3, h4, h5, h6,
+  p, span, label, li, a,
+  td, th, div, button {
+    color: inherit;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   COMPONENT STYLES
+═══════════════════════════════════════════ */
+@layer components {
+  .glass-card {
+    background: rgba(14, 18, 42, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .glow-indigo {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4),
+                0 0 60px rgba(99, 102, 241, 0.15);
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.4),
+                0 0 60px rgba(6, 182, 212, 0.15);
+  }
+
+  .glow-pink {
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.4),
+                0 0 60px rgba(236, 72, 153, 0.15);
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #6366f1, #06b6d4, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .sidebar-item-active {
+    background: linear-gradient(135deg, rgba(99,102,241,0.3), rgba(6,182,212,0.2));
+    border: 1px solid rgba(99,102,241,0.4);
+    color: white;
+  }
+
+  .sidebar-item {
+    color: rgb(165, 170, 210);
+    transition: all 0.2s ease;
+  }
+  .sidebar-item:hover {
+    background: rgba(99, 102, 241, 0.12);
+    color: white;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, rgba(14,18,42,0.9), rgba(20,25,60,0.9));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    transition: all 0.3s ease;
+  }
+  .stat-card:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.2);
+  }
+
+  .chart-card {
+    background: linear-gradient(135deg, rgba(14,18,42,0.9), rgba(20,25,60,0.9));
+    border: 1px solid rgba(45, 52, 100, 0.8);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   KEYFRAME ANIMATIONS (preserved)
+═══════════════════════════════════════════ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position:  1000px 0; }
+}
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.8; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@layer utilities {
+  .animate-in-up     { animation: fadeInUp    0.5s ease-out; }
+  .animate-in-left   { animation: slideInLeft 0.5s ease-out; }
+  .animate-in-right  { animation: slideInRight 0.5s ease-out; }
+  .animate-float     { animation: float 3s ease-in-out infinite; }
+  .animate-gradient  {
+    animation: gradientShift 4s ease infinite;
+    background-size: 200% 200%;
+  }
+  .animate-shimmer {
+    animation: shimmer 2.5s infinite;
+    background: linear-gradient(90deg,
+      transparent,
+      rgba(99, 102, 241, 0.08),
+      transparent
+    );
+    background-size: 1000px 100%;
+  }
+}
