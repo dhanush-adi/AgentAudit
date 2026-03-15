@@ -1,0 +1,8 @@
+[languages]
+node = "20"
+
+[build]
+buildCommand = "cd Frontend && npm install && npm run build"
+
+[start]
+runCommand = "cd Frontend && PORT=$PORT npm start"

@@ -1,11 +1,11 @@
 [build]
 builder = "nixpacks"
-buildCommand = "cd Frontend && npm install && npm run build"
+
+[nixpacks]
+node-version = "20"
 
 [deploy]
+buildCommand = "cd Frontend && npm install && npm run build"
 startCommand = "cd Frontend && PORT=$PORT npm start"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
-
-[env]
-NODE_VERSION = "20"
