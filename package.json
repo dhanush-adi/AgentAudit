@@ -1,12 +1,13 @@
 {
-  "name": "my-project",
+  "name": "agentaudit-workspace",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.8.2",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint ."
+    "dev": "next dev --dir Frontend",
+    "build": "cd Frontend && npm install && npm run build",
+    "start": "cd Frontend && npm start",
+    "lint": "cd Frontend && eslint ."
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

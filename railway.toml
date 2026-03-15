@@ -1,11 +1,7 @@
 [build]
-builder = "nixpacks"
-
-[nixpacks]
-node-version = "20"
+dockerfile = "Dockerfile"
 
 [deploy]
-buildCommand = "cd Frontend && npm install && npm run build"
 startCommand = "cd Frontend && PORT=$PORT npm start"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
