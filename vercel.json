@@ -15,6 +15,5 @@
       "description": "URL of the demo-agent API (can be same Vercel deployment or external)",
       "default": "http://localhost:3001"
     }
-  },
-  "buildOutputDirectory": "Frontend/.next"
+  }
 }
