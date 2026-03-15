@@ -19,7 +19,7 @@ AgentAudit is an npm middleware package that any developer drops into their Expr
 
 1. **Gate** every API endpoint behind an [x402](https://docs.cdp.coinbase.com/x402/welcome) micropayment
 2. **Register** the agent's identity on-chain using [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004)
-3. **Log** all call activity, payments, and reputation to a live real-time dashboard
+3. **Log** all call activity, payments, and reputation to console and/or a custom webhook
 
 > No accounts. No subscriptions. No custom billing logic.  
 > **Machines pay machines, automatically, on-chain.**
@@ -72,10 +72,10 @@ curl http://localhost:3001/analyze
 ## 🏗️ Architecture
 
 ```
-┌─────────────────┐       ┌────────────────────────────┐       ┌────────────────┐
-│  Buyer Agent    │──1──▶ │  Seller API                │──4──▶ │  Dashboard     │
-│  (Any AI Bot)   │       │  (w/ AgentAudit Middleware) │       │  (Supabase RT) │
-└─────────────────┘       └──────────┬─────────────────┘       └────────────────┘
+┌─────────────────┐       ┌────────────────────────────┐       ┌──────────────┐
+│  Buyer Agent    │──1──▶ │  Seller API                │──4──▶ │  Console /   │
+│  (Any AI Bot)   │       │  (w/ AgentAudit Middleware) │       │  Webhook Log │
+└─────────────────┘       └──────────┬─────────────────┘       └──────────────┘
                                      │
                                2. Verify │ 3. Settle
                                      ▼
@@ -90,7 +90,7 @@ curl http://localhost:3001/analyze
 1. A buyer agent calls the seller's API endpoint.
 2. The `agentAudit` middleware checks for a valid `x-payment` header. If missing, it returns a **402 Payment Required** with payment instructions.
 3. Once payment is verified on-chain, the middleware settles the transaction and lets the request through.
-4. Every call is logged to **Supabase** in real-time for the dashboard.
+4. Every call is logged to **console** (and optionally a custom webhook).
 
 ---
 
@@ -103,7 +103,6 @@ This is a **Turborepo monorepo** with the following packages:
 | **`agentaudit`** | Core Express middleware — x402 gating, payment verification, settlement, logging | `packages/middleware/` |
 | **`contracts`** | Solidity smart contracts (Hardhat) — AgentRegistry, ReputationRegistry, ValidationRegistry | `packages/contracts/` |
 | **`demo-agent`** | Example Express API using the middleware | `packages/demo-agent/` |
-| **`supabase`** | Database schema for call logs and agent data | `packages/supabase/` |
 
 ---
 
@@ -159,10 +158,6 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 
 # OpenRouter API Key (for AI model access)
 OPENROUTER_API_KEY=your_openrouter_key
-
-# Supabase (for dashboard)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 ---
@@ -194,7 +189,7 @@ cd packages/demo-agent && npm run dev
 | Middleware | Express.js, x402 Protocol |
 | Blockchain | GOAT Network (Bitcoin L2) |
 | AI Gateway | OpenClaw + Telegram |
-| Database | Supabase (Postgres + Realtime) |
+| Logging | Console + optional webhook |
 | Monorepo | Turborepo |
 
 ---

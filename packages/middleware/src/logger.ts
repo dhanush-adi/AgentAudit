@@ -1,33 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
 import { CallLog } from './types';
 
-const supabaseUrl = process.env.SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+export async function logCall(log: CallLog, dashboardWebhook?: string) {
+  // Structured console logging — no external database required
+  const icon = log.status === 'verified' ? '✅' : log.status === 'rejected' ? '❌' : '⏳';
+  console.log(
+    `${icon} [AgentAudit] agent=${log.agent_id} endpoint=${log.endpoint} ` +
+    `amount=$${log.amount_usdc} status=${log.status} latency=${log.latency_ms}ms ` +
+    `caller=${log.caller_address} tx=${log.tx_hash || 'none'}`
+  );
 
-let supabase: any = null;
-if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
-}
-
-export async function logCallToSupabase(log: CallLog, dashboardWebhook?: string) {
-  try {
-    if (supabase) {
-      const { error } = await supabase.from('call_logs').insert([log]);
-      if (error) {
-        console.error('AgentAudit: Supabase logging error', error);
-      }
-    }
-    
-    if (dashboardWebhook) {
-      await fetch(dashboardWebhook, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(log)
-      }).catch(err => {
-        console.error('AgentAudit: Webhook logging error', err);
-      });
-    }
-  } catch (error) {
-    console.error('AgentAudit: Failed to log call', error);
+  // Optional: send logs to a custom webhook endpoint
+  if (dashboardWebhook) {
+    await fetch(dashboardWebhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(log)
+    }).catch(err => {
+      console.error('AgentAudit: Webhook logging error', err);
+    });
   }
 }

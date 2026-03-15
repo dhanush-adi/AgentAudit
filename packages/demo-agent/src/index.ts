@@ -1,5 +1,9 @@
 import express from 'express';
 import { agentAudit } from 'agentaudit';
+import * as dotenv from 'dotenv';
+import { resolve } from 'path';
+
+dotenv.config({ path: resolve(__dirname, '../../../.env') });
 
 const app = express();
 
@@ -8,7 +12,7 @@ app.use(agentAudit({
   agentId: '1',
   network: 'base-sepolia',
   receivingAddress: '0xDemoReceivingAddress',
-  logCalls: false, // Don't crash without supabase keys
+  logCalls: true, // Logs to console (no database needed)
   onPaymentSuccess: (txHash, caller) => {
     console.log(`Payment received from ${caller}: ${txHash}`);
   }

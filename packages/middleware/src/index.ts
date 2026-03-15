@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AgentAuditConfig, CallLog } from './types';
 import { verifyPayment, settlePayment, build402Response } from './x402';
-import { logCallToSupabase } from './logger';
+import { logCall } from './logger';
 
 export * from './types';
 
@@ -31,7 +31,7 @@ export function agentAudit(config: AgentAuditConfig): RequestHandler {
         payment_payload: { header: paymentHeader, error }
       };
       if (config.logCalls !== false) {
-        logCallToSupabase(log, config.dashboardWebhook);
+        logCall(log, config.dashboardWebhook);
       }
       if (config.onPaymentFail) {
         config.onPaymentFail(error || 'Verification failed', caller || 'unknown');
@@ -60,7 +60,7 @@ export function agentAudit(config: AgentAuditConfig): RequestHandler {
         };
         
         if (config.logCalls !== false) {
-          logCallToSupabase(log, config.dashboardWebhook);
+          logCall(log, config.dashboardWebhook);
         }
         
         if (config.onPaymentSuccess && txHash && caller) {
