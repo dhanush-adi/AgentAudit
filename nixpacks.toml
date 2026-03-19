@@ -1,8 +1,11 @@
 [languages]
 node = "20"
 
+[setup]
+cmd = "npm install -g pnpm@9.15.4"
+
 [build]
-buildCommand = "cd Frontend && npm install && npm run build"
+buildCommand = "cd Frontend && pnpm install && pnpm build"
 
 [start]
-runCommand = "cd Frontend && PORT=$PORT npm start"
+runCommand = "cd Frontend && PORT=$PORT pnpm start"

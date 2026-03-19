@@ -9,9 +9,32 @@ __v0_jsx-dev-runtime.ts
 next.user-config.*
 
 # Environment variables
+.env
+.env.*
 .env*.local
 
 # Common ignores
 node_modules/
 .next/
 .DS_Store
+
+# Build outputs & caches
+.turbo/
+dist/
+out/
+*.tsbuildinfo
+
+# Hardhat
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

@@ -7,8 +7,15 @@ interface IAgentRegistry {
     function isApprovedForAll(address owner, address operator) external view returns (bool);
 }
 
+/// @title ReputationRegistry
+/// @notice On-chain reputation and feedback system for AI agents in the AgentAudit protocol.
+/// @dev Clients submit scored feedback with tags. Owners cannot review their own agents.
+///      Feedback can be revoked. Responses can be appended to any feedback entry.
 contract ReputationRegistry {
     address private immutable _identityRegistry;
+
+    /// @notice Maximum feedback entries a single client can submit per agent (prevents storage bloat)
+    uint256 public constant MAX_FEEDBACK_PER_CLIENT = 100;
 
     struct FeedbackData {
         int128 value;
@@ -25,6 +32,17 @@ contract ReputationRegistry {
     // agentId => clientAddress => hasClient
     mapping(uint256 => mapping(address => bool)) private _hasClient;
 
+    /// @notice Emitted when new feedback is submitted
+    /// @param agentId The agent receiving feedback
+    /// @param clientAddress The address that submitted the feedback
+    /// @param feedbackIndex 1-based index of the feedback within the client's array
+    /// @param value The score value
+    /// @param valueDecimals Decimal precision of the value
+    /// @param tag1 The primary category tag (indexed for filtering)
+    /// @param tag2 The secondary tag
+    /// @param endpoint The API endpoint this feedback relates to
+    /// @param feedbackURI Optional URI to detailed feedback metadata
+    /// @param feedbackHash Hash of the feedback content for integrity
     event NewFeedback(
         uint256 indexed agentId,
         address indexed clientAddress,
@@ -39,7 +57,10 @@ contract ReputationRegistry {
         bytes32 feedbackHash
     );
 
+    /// @notice Emitted when feedback is revoked by the original submitter
     event FeedbackRevoked(uint256 indexed agentId, address indexed clientAddress, uint64 feedbackIndex);
+
+    /// @notice Emitted when a response is appended to a feedback entry
     event ResponseAppended(
         uint256 indexed agentId,
         address indexed clientAddress,
@@ -49,14 +70,25 @@ contract ReputationRegistry {
         bytes32 responseHash
     );
 
+    /// @param identityRegistry_ Address of the AgentRegistry contract
     constructor(address identityRegistry_) {
         _identityRegistry = identityRegistry_;
     }
 
+    /// @notice Returns the address of the identity registry this contract references
     function getIdentityRegistry() external view returns (address) {
         return _identityRegistry;
     }
 
+    /// @notice Submit feedback for an agent
+    /// @param agentId The agent to review
+    /// @param value The score value (can be negative)
+    /// @param valueDecimals Number of decimal places for the value (0-18)
+    /// @param tag1 Primary category tag
+    /// @param tag2 Secondary tag
+    /// @param endpoint The API endpoint being reviewed
+    /// @param feedbackURI Optional URI to detailed feedback
+    /// @param feedbackHash Hash of the feedback content
     function giveFeedback(
         uint256 agentId,
         int128 value,
@@ -70,7 +102,7 @@ contract ReputationRegistry {
         require(valueDecimals <= 18, "Decimals must be 0-18");
         
         IAgentRegistry registry = IAgentRegistry(_identityRegistry);
-        address owner = registry.ownerOf(agentId); // Reverts if not minted
+        address owner = registry.ownerOf(agentId);
         
         require(
             msg.sender != owner && 
@@ -80,6 +112,8 @@ contract ReputationRegistry {
         );
 
         FeedbackData[] storage fbs = _feedbacks[agentId][msg.sender];
+        require(fbs.length < MAX_FEEDBACK_PER_CLIENT, "Max feedback per client reached");
+
         fbs.push(FeedbackData({
             value: value,
             valueDecimals: valueDecimals,
@@ -110,6 +144,9 @@ contract ReputationRegistry {
         );
     }
 
+    /// @notice Revoke a previously submitted feedback entry
+    /// @param agentId The agent the feedback was for
+    /// @param feedbackIndex 1-based index of the feedback to revoke
     function revokeFeedback(uint256 agentId, uint64 feedbackIndex) external {
         require(feedbackIndex > 0 && feedbackIndex <= _feedbacks[agentId][msg.sender].length, "Invalid index");
         FeedbackData storage data = _feedbacks[agentId][msg.sender][feedbackIndex - 1];
@@ -119,6 +156,12 @@ contract ReputationRegistry {
         emit FeedbackRevoked(agentId, msg.sender, feedbackIndex);
     }
 
+    /// @notice Append a response to a feedback entry (open to anyone)
+    /// @param agentId The agent the feedback is for
+    /// @param clientAddress The address that submitted the original feedback
+    /// @param feedbackIndex 1-based index of the feedback
+    /// @param responseURI URI to the response content
+    /// @param responseHash Hash of the response content
     function appendResponse(
         uint256 agentId,
         address clientAddress,
@@ -126,11 +169,18 @@ contract ReputationRegistry {
         string calldata responseURI,
         bytes32 responseHash
     ) external {
-        // Anyone can append a response
         require(feedbackIndex > 0 && feedbackIndex <= _feedbacks[agentId][clientAddress].length, "Invalid index");
         emit ResponseAppended(agentId, clientAddress, feedbackIndex, msg.sender, responseURI, responseHash);
     }
 
+    /// @notice Compute an aggregated summary of feedback for an agent
+    /// @param agentId The agent to summarize
+    /// @param clientAddresses Array of client addresses to include
+    /// @param tag1 Filter by primary tag (empty string = no filter)
+    /// @param tag2 Filter by secondary tag (empty string = no filter)
+    /// @return count Number of matching non-revoked feedback entries
+    /// @return summaryValue The average value (with decimal normalization)
+    /// @return summaryValueDecimals The decimal precision of the summary value
     function getSummary(
         uint256 agentId,
         address[] calldata clientAddresses,
@@ -142,6 +192,7 @@ contract ReputationRegistry {
         uint64 validCount = 0;
         uint8 maxDecimals = 0;
 
+        // Single pass: find maxDecimals while counting
         for (uint256 i = 0; i < clientAddresses.length; i++) {
             FeedbackData[] storage fbs = _feedbacks[agentId][clientAddresses[i]];
             for (uint256 j = 0; j < fbs.length; j++) {
@@ -154,6 +205,7 @@ contract ReputationRegistry {
             }
         }
         
+        // Second pass: accumulate normalized values
         for (uint256 i = 0; i < clientAddresses.length; i++) {
             FeedbackData[] storage fbs = _feedbacks[agentId][clientAddresses[i]];
             for (uint256 j = 0; j < fbs.length; j++) {
@@ -180,6 +232,15 @@ contract ReputationRegistry {
         return (validCount, summaryValue, maxDecimals);
     }
 
+    /// @notice Read a single feedback entry
+    /// @param agentId The agent
+    /// @param clientAddress The client who submitted the feedback
+    /// @param feedbackIndex 1-based index
+    /// @return value The score value
+    /// @return valueDecimals Decimal precision
+    /// @return tag1 Primary tag
+    /// @return tag2 Secondary tag
+    /// @return isRevoked Whether the feedback has been revoked
     function readFeedback(uint256 agentId, address clientAddress, uint64 feedbackIndex) external view returns (
         int128 value,
         uint8 valueDecimals,
@@ -192,6 +253,12 @@ contract ReputationRegistry {
         return (data.value, data.valueDecimals, data.tag1, data.tag2, data.isRevoked);
     }
 
+    /// @notice Read all matching feedback entries across multiple clients
+    /// @param agentId The agent to query
+    /// @param clientAddresses Array of client addresses to include
+    /// @param tag1 Filter by primary tag (empty = no filter)
+    /// @param tag2 Filter by secondary tag (empty = no filter)
+    /// @param includeRevoked Whether to include revoked feedback
     function readAllFeedback(
         uint256 agentId,
         address[] calldata clientAddresses,
@@ -207,7 +274,6 @@ contract ReputationRegistry {
         string[] memory tag2s,
         bool[] memory revokedStatuses
     ) {
-        // Count matching entries
         uint256 matchCount = 0;
         for (uint256 i = 0; i < clientAddresses.length; i++) {
             FeedbackData[] storage fbs = _feedbacks[agentId][clientAddresses[i]];
@@ -248,10 +314,12 @@ contract ReputationRegistry {
         }
     }
 
+    /// @notice Get all client addresses that have submitted feedback for an agent
     function getClients(uint256 agentId) external view returns (address[] memory) {
         return _clients[agentId];
     }
 
+    /// @notice Get the number of feedback entries a client has submitted for an agent
     function getLastIndex(uint256 agentId, address clientAddress) external view returns (uint64) {
         return uint64(_feedbacks[agentId][clientAddress].length);
     }

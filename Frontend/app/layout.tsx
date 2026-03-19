@@ -1,15 +1,13 @@
-import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import './globals.css'
+import type { Metadata, Viewport } from 'next';
+import { Geist } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import './globals.css';
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'AgentAudit - AI Agent Intelligence Platform',
-  description: 'Enterprise-grade AI agent audit, monitoring, and analytics dashboard for autonomous agent management.',
-  generator: 'v0.app',
+  title: 'AgentAudit - Pay-per-call billing for AI Agents',
+  description: 'Stripe for AI Agents. Pay-per-call micropayment middleware on GOAT Network.',
   icons: {
     icon: [
       {
@@ -27,29 +25,29 @@ export const metadata: Metadata = {
     ],
     apple: '/apple-icon.png',
   },
-}
+};
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#ffffff',
-}
+  themeColor: '#08091a',
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en" style={{ colorScheme: 'light' }}>
       <head>
         <meta name="color-scheme" content="light" />
       </head>
-      <body className="font-sans antialiased bg-background text-foreground">
+      <body className={`${geist.className} font-sans antialiased bg-background text-foreground`}>
         {children}
         <Analytics />
       </body>
     </html>
-  )
+  );
 }

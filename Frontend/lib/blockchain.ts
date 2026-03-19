@@ -17,6 +17,10 @@ export const publicClient = createPublicClient({
   transport: http(GOAT_TESTNET.rpcUrl),
 });
 
+/**
+ * Fetch agent identity data from the on-chain AgentRegistry.
+ * @returns Agent data or null if the token doesn't exist or the call fails
+ */
 export async function fetchAgentOnChain(agentId: bigint) {
   try {
     const [owner, wallet, uri] = await Promise.all([
@@ -40,11 +44,17 @@ export async function fetchAgentOnChain(agentId: bigint) {
       }),
     ]);
     return { owner, wallet, uri, agentId: agentId.toString() };
-  } catch {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.warn(`fetchAgentOnChain(${agentId}): ${message}`);
     return null;
   }
 }
 
+/**
+ * Fetch reputation data from the on-chain ReputationRegistry.
+ * Falls back to zeroed values if the function doesn't exist on the deployed contract.
+ */
 export async function fetchReputationOnChain(agentId: bigint) {
   try {
     const result = await publicClient.readContract({
@@ -54,9 +64,10 @@ export async function fetchReputationOnChain(agentId: bigint) {
       args: [agentId],
     });
     const [feedbackCount, totalScore] = result as [bigint, bigint, bigint];
-    const avgScore = feedbackCount > 0n ? Number(totalScore) / Number(feedbackCount) : 0;
+    const avgScore = feedbackCount > BigInt(0) ? Number(totalScore) / Number(feedbackCount) : 0;
     return { feedbackCount: Number(feedbackCount), avgScore };
   } catch {
+    // getReputation doesn't exist on the deployed contract, return zeros
     return { feedbackCount: 0, avgScore: 0 };
   }
 }

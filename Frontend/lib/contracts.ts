@@ -1,5 +1,6 @@
 // ============================================================
 // AgentAudit — Contract ABIs (minimal, read-only)
+// Matches the deployed contracts on GOAT Testnet3
 // ============================================================
 
 export const AGENT_REGISTRY_ABI = [

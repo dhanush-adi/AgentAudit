@@ -1,1 +1,1 @@
-web: cd Frontend && PORT=${PORT} npm start
+web: cd Frontend && PORT=${PORT} pnpm start

@@ -1,44 +1,58 @@
-// Frontend/app/api/agent/route.ts
-// Reads agent 1 from the GOAT Network on-chain registry
 import { NextResponse } from 'next/server';
 import { fetchAgentOnChain, fetchReputationOnChain } from '@/lib/blockchain';
 
 export const dynamic = 'force-dynamic';
 
+const TIMEOUT_MS = 3000;
+
+function parseAgentId(raw: string | null): bigint | null {
+  if (!raw) return null;
+  if (!/^\d+$/.test(raw)) return null;
+  try {
+    return BigInt(raw);
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const agentId = BigInt(searchParams.get('id') ?? '1');
+  const rawId = searchParams.get('id');
+  const agentId = parseAgentId(rawId);
+
+  if (agentId === null) {
+    return NextResponse.json(
+      { error: 'Invalid agent ID: must be a non-negative integer', provided: rawId },
+      { status: 400 },
+    );
+  }
 
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
     const [agent, reputation] = await Promise.all([
       Promise.race([
         fetchAgentOnChain(agentId),
-        new Promise(resolve => {
-          setTimeout(() => resolve(null), 4500);
-        })
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), TIMEOUT_MS)),
       ]),
       Promise.race([
         fetchReputationOnChain(agentId),
-        new Promise(resolve => {
-          setTimeout(() => resolve({ feedbackCount: 0, avgScore: 0 }), 4500);
-        })
+        new Promise<{ feedbackCount: number; avgScore: number }>((resolve) =>
+          setTimeout(() => resolve({ feedbackCount: 0, avgScore: 0 }), TIMEOUT_MS),
+        ),
       ]),
     ]);
 
-    clearTimeout(timeout);
-
     if (!agent) {
-      // Return mock data if blockchain query fails
       return NextResponse.json({
         agentId: agentId.toString(),
         owner: '0x2962B9266a48E8F83c583caD27Be093f231781b8',
         wallet: '0x2962B9266a48E8F83c583caD27Be093f231781b8',
         uri: 'ipfs://QmDemo',
-        reputation: reputation?.feedbackCount > 0 ? reputation : { feedbackCount: 42, avgScore: 4.8 },
+        reputation:
+          reputation && reputation.feedbackCount > 0
+            ? reputation
+            : { feedbackCount: 42, avgScore: 4.8 },
         mockData: true,
+        error: 'On-chain fetch timed out or agent not found; showing mock data',
       });
     }
 
@@ -47,10 +61,9 @@ export async function GET(req: Request) {
       owner: agent.owner,
       wallet: agent.wallet,
       uri: agent.uri,
-      reputation: reputation?.feedbackCount > 0 ? reputation : { feedbackCount: 42, avgScore: 4.8 },
+      reputation,
     });
   } catch (error) {
-    // Return mock data on any error
     return NextResponse.json({
       agentId: agentId.toString(),
       owner: '0x2962B9266a48E8F83c583caD27Be093f231781b8',
@@ -58,6 +71,7 @@ export async function GET(req: Request) {
       uri: 'ipfs://QmDemo',
       reputation: { feedbackCount: 42, avgScore: 4.8 },
       mockData: true,
+      error: error instanceof Error ? error.message : 'Unknown blockchain error',
     });
   }
 }

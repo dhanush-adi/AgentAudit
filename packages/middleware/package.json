@@ -1,19 +1,43 @@
 {
   "name": "agentaudit",
   "version": "0.1.0",
+  "description": "Stripe for AI Agents — pay-per-call billing middleware with x402 micropayments",
+  "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc -w"
+    "dev": "tsc -w",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "viem": "^2.7.9"
+  },
+  "peerDependencies": {
+    "express": "^4.18.0"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^20.11.19",
     "express": "^4.18.2",
+    "supertest": "^6.3.4",
+    "@types/supertest": "^6.0.2",
+    "vitest": "^2.1.8",
     "typescript": "^5.3.3"
   }
 }
