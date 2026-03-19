@@ -1,40 +1,25 @@
-<p align="center">
-  <h1 align="center">AgentAudit</h1>
-  <p align="center"><strong>Stripe for AI Agents — Pay-per-call billing middleware for the Machine-to-Machine economy</strong></p>
-  <p align="center">
-    <a href="#quick-start">Quick Start</a> •
-    <a href="#architecture">Architecture</a> •
-    <a href="#packages">Packages</a> •
-    <a href="#api-reference">API Reference</a> •
-    <a href="#deployed-contracts">Deployed Contracts</a> •
-    <a href="#contributing">Contributing</a>
-  </p>
-</p>
+<div align="center">
+
+# AgentAudit
+
+**Stripe for AI Agents — Pay-per-call billing middleware for the Machine-to-Machine economy**
+
+[![CI](https://github.com/dhanush-adi/AgentAudit/actions/workflows/ci.yml/badge.svg)](https://github.com/dhanush-adi/AgentAudit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
+[Quick Start](#quick-start) · [How It Works](#how-it-works) · [Configuration](#configuration) · [Smart Contracts](#smart-contracts) · [Development](#development)
+
+</div>
 
 ---
 
-## What is AgentAudit?
+## Overview
 
-AgentAudit is an npm middleware package that any developer drops into their Express/Node.js API in **3 lines of code** to:
+AgentAudit is an npm middleware that gates any Express API endpoint behind x402 micropayments. Drop it into your existing server in 3 lines — no accounts, no subscriptions, no billing logic. Machines pay machines, automatically, on-chain.
 
-1. **Gate** every API endpoint behind an [x402](https://docs.cdp.coinbase.com/x402/welcome) micropayment
-2. **Register** the agent's identity on-chain using [ERC-8004](https://eips.ethereum.org/EIPS/eip-8004)
-3. **Log** all call activity, payments, and reputation to console and/or a custom webhook
-
-> No accounts. No subscriptions. No custom billing logic.
-> **Machines pay machines, automatically, on-chain.**
-
----
-
-## Quick Start
-
-### 1. Install
-
-```bash
+```
 npm install agentaudit
 ```
-
-### 2. Add 3 lines to your Express app
 
 ```typescript
 import express from 'express';
@@ -45,7 +30,7 @@ const app = express();
 app.use(
   agentAudit({
     price: '0.001', // USDC per call
-    agentId: '42', // Your on-chain agent token ID
+    agentId: '42', // Your on-chain agent ID
     network: 'goat-testnet', // 'base' | 'base-sepolia' | 'goat-testnet'
     receivingAddress: '0xYourWallet...',
   }),
@@ -58,134 +43,230 @@ app.get('/analyze', (_req, res) => {
 app.listen(3001);
 ```
 
-### 3. Test it
-
-```bash
-# Without payment header -> 402 Payment Required
-curl http://localhost:3001/analyze
-
-# With payment header -> your API response
-curl -H "x-payment: <payment-payload>" http://localhost:3001/analyze
-```
+Every endpoint behind the middleware now returns **402 Payment Required** unless the caller includes a valid `x-payment` header.
 
 ---
 
-## Architecture
+## How It Works
 
 ```
  Buyer Agent                Seller API               GOAT Network
 (Any AI Bot)          (AgentAudit Middleware)      (On-chain)
      │                        │                         │
      │── 1. Request ────────▶│                         │
-     │                        │── 2. Verify Payment ───▶│
+     │                        │── 2. Verify ──────────▶│
      │                        │◀── 3. Valid? ──────────│
-     │                        │                         │
      │◀── 4. 402 or Data ────│                         │
-     │                        │── 5. Settle Payment ───▶│
+     │                        │── 5. Settle ───────────▶│
      │                        │── 6. Log ──────────────▶ Console/Webhook
 ```
 
----
-
-## Packages
-
-| Package                    | Description                                                                                | Path                   |
-| -------------------------- | ------------------------------------------------------------------------------------------ | ---------------------- |
-| **`agentaudit`**           | Core Express middleware — x402 gating, payment verification, settlement, logging           | `packages/middleware/` |
-| **`contracts`**            | Solidity smart contracts (Hardhat) — AgentRegistry, ReputationRegistry, ValidationRegistry | `packages/contracts/`  |
-| **`demo-agent`**           | Example Express API using the middleware                                                   | `packages/demo-agent/` |
-| **`agentaudit-dashboard`** | Next.js dashboard for monitoring agent activity                                            | `Frontend/`            |
+| Step  | What happens                                                                                    |
+| ----- | ----------------------------------------------------------------------------------------------- |
+| **1** | Buyer sends a request to any API endpoint                                                       |
+| **2** | Middleware checks for `x-payment` header, verifies with x402 facilitator                        |
+| **3** | Facilitator validates the payment signature on-chain                                            |
+| **4** | If missing/invalid: returns `402` with payment demand. If valid: passes through to your handler |
+| **5** | After your response is sent, middleware settles the payment on-chain (with retry)               |
+| **6** | Call is logged to console and optionally to a webhook                                           |
 
 ---
 
-## API Reference
+## Configuration
 
-### `agentAudit(config)`
+```typescript
+import { agentAudit, type AgentAuditConfig } from 'agentaudit';
+```
 
-Creates an Express middleware that gates API endpoints behind x402 micropayments.
+| Option             | Type                                         | Required | Description                                      |
+| ------------------ | -------------------------------------------- | -------- | ------------------------------------------------ |
+| `price`            | `string`                                     | Yes      | Price per call in USDC (e.g. `"0.001"`)          |
+| `agentId`          | `string`                                     | Yes      | Your on-chain agent token ID                     |
+| `network`          | `'base' \| 'base-sepolia' \| 'goat-testnet'` | Yes      | Target blockchain network                        |
+| `receivingAddress` | `` `0x${string}` ``                          | Yes      | EVM address that receives payments               |
+| `dashboardWebhook` | `string`                                     | No       | URL to POST call logs to                         |
+| `logCalls`         | `boolean`                                    | No       | Enable console/webhook logging (default: `true`) |
+| `onPaymentSuccess` | `(txHash, caller, amount) => void`           | No       | Callback after successful settlement             |
+| `onPaymentFail`    | `(reason, caller) => void`                   | No       | Callback when verification fails                 |
 
-**Config Options:**
+### Environment Variables
 
-| Option             | Type                                         | Required | Default | Description                                  |
-| ------------------ | -------------------------------------------- | -------- | ------- | -------------------------------------------- |
-| `price`            | `string`                                     | Yes      | —       | Price per API call in USDC (e.g., `"0.001"`) |
-| `agentId`          | `string`                                     | Yes      | —       | Unique identifier for your agent             |
-| `network`          | `'base' \| 'base-sepolia' \| 'goat-testnet'` | Yes      | —       | Target blockchain network                    |
-| `receivingAddress` | `` `0x${string}` ``                          | Yes      | —       | EVM address that receives micropayments      |
-| `dashboardWebhook` | `string`                                     | No       | —       | Webhook URL for real-time call logging       |
-| `logCalls`         | `boolean`                                    | No       | `true`  | Whether to log calls to console/webhook      |
-| `onPaymentSuccess` | `(txHash, caller, amount) => void`           | No       | —       | Callback after successful payment            |
-| `onPaymentFail`    | `(reason, caller) => void`                   | No       | —       | Callback when payment verification fails     |
+| Variable               | Description                            | Default                        |
+| ---------------------- | -------------------------------------- | ------------------------------ |
+| `X402_FACILITATOR_URL` | Custom facilitator endpoint            | `https://x402.org/facilitator` |
+| `LOG_FORMAT`           | Set to `"json"` for structured logging | human-readable                 |
 
-**Flow:**
+### Payment Flow
 
-1. Incoming request is checked for `x-payment` header
-2. If missing: returns `402` with x402 payment demand
-3. If present: verifies with x402 facilitator (10s timeout)
-4. If invalid: returns `402` with error, logs as `rejected`
-5. If valid: calls `next()`, logs as `verified` after response is sent
-6. After response: settles payment on-chain (with retry on failure)
-
-**Environment Variables:**
-
-| Variable               | Description                                 | Default                        |
-| ---------------------- | ------------------------------------------- | ------------------------------ |
-| `X402_FACILITATOR_URL` | Custom x402 facilitator URL                 | `https://x402.org/facilitator` |
-| `LOG_FORMAT`           | Set to `"json"` for structured JSON logging | human-readable                 |
+1. Request arrives — middleware checks for `x-payment` header
+2. **Missing** → returns `402` with x402-compliant payment demand
+3. **Present** → verifies with facilitator (10s timeout)
+4. **Invalid** → returns `402` with error reason, logs as `rejected`
+5. **Valid** → calls `next()`, your handler runs
+6. **After response** → settles on-chain (3 retries with exponential backoff), logs as `verified`
 
 ---
 
 ## Smart Contracts
 
-| Contract               | Description                                                       |
-| ---------------------- | ----------------------------------------------------------------- |
-| **AgentRegistry**      | ERC-721 agent identity NFTs with EIP-712 wallet delegation        |
-| **ReputationRegistry** | On-chain feedback, scoring, and aggregated reputation             |
-| **ValidationRegistry** | Trust verification workflows with validator assignment and expiry |
+All contracts are deployed on **GOAT Testnet3** (Chain ID `48816`).
 
-All contracts are on the GOAT Testnet3. See `packages/contracts/` for source and tests.
+| Contract               | Address                                                                                                      | Description                                                |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| **AgentRegistry**      | [`0x3de0...140F`](https://explorer.testnet3.goat.network/address/0x3de03AB80fdDDa888598303FF34E496bD29E140F) | ERC-721 agent identity NFTs with EIP-712 wallet delegation |
+| **ReputationRegistry** | [`0x4721...9BF0`](https://explorer.testnet3.goat.network/address/0x4721bEF3A4A7226E63783d6546031eCEe3D59BF0) | On-chain feedback, scoring, and aggregated reputation      |
+| **ValidationRegistry** | [`0x9fac...6924`](https://explorer.testnet3.goat.network/address/0x9facA0523F1CEc547CE5e00a808338bF67a46924) | Trust verification workflows with validator assignment     |
+
+### AgentRegistry
+
+| Function                                           | Description                              |
+| -------------------------------------------------- | ---------------------------------------- |
+| `register(string uri)`                             | Mint a new agent identity NFT            |
+| `setAgentURI(uint256, string)`                     | Update agent metadata URI                |
+| `setMetadata(uint256, string, bytes)`              | Set key-value metadata                   |
+| `getMetadata(uint256, string)`                     | Read metadata value                      |
+| `getAgentWallet(uint256)`                          | Get payment wallet (falls back to owner) |
+| `setAgentWallet(uint256, address, uint256, bytes)` | Delegate wallet via EIP-712 signature    |
+
+### ReputationRegistry
+
+| Function                                                    | Description                |
+| ----------------------------------------------------------- | -------------------------- |
+| `giveFeedback(uint256, int128, uint8, string, string, ...)` | Submit scored feedback     |
+| `revokeFeedback(uint256, uint64)`                           | Revoke a feedback entry    |
+| `appendResponse(uint256, address, uint64, string, bytes32)` | Respond to feedback        |
+| `getSummary(uint256, address[], string, string)`            | Aggregated score summary   |
+| `readFeedback(uint256, address, uint64)`                    | Read single feedback entry |
+
+### ValidationRegistry
+
+| Function                                                      | Description                           |
+| ------------------------------------------------------------- | ------------------------------------- |
+| `validationRequest(address, uint256, string, bytes32)`        | Request validation from a validator   |
+| `validationResponse(bytes32, uint8, string, bytes32, string)` | Validator responds with score (0-100) |
+| `reclaimExpired(bytes32)`                                     | Reclaim expired validation request    |
+| `getValidationStatus(bytes32)`                                | Query validation status               |
 
 ---
 
-## Deployed Contracts
+## Packages
 
-**Network:** GOAT Testnet3 (Chain ID `48816`)
+```
+AgentAudit/
+├── packages/
+│   ├── middleware/      # npm package "agentaudit" — the core product
+│   ├── contracts/       # Solidity smart contracts (Hardhat)
+│   └── demo-agent/      # Example Express API using the middleware
+├── Frontend/            # Next.js dashboard for monitoring agents
+├── .env.example         # All environment variables
+├── Dockerfile           # Production container (pnpm + multi-stage)
+└── turbo.json           # Turborepo pipeline config
+```
 
-| Contract           | Address                                      |
-| ------------------ | -------------------------------------------- |
-| AgentRegistry      | `0x3de03AB80fdDDa888598303FF34E496bD29E140F` |
-| ReputationRegistry | `0x4721bEF3A4A7226E63783d6546031eCEe3D59BF0` |
-| ValidationRegistry | `0x9facA0523F1CEc547CE5e00a808338bF67a46924` |
-
-> Explorer: [explorer.testnet3.goat.network](https://explorer.testnet3.goat.network)
+| Package                | Path                   | Description                                                                |
+| ---------------------- | ---------------------- | -------------------------------------------------------------------------- |
+| `agentaudit`           | `packages/middleware/` | Core Express middleware — x402 gating, verification, settlement            |
+| `contracts`            | `packages/contracts/`  | Solidity contracts — AgentRegistry, ReputationRegistry, ValidationRegistry |
+| `demo-agent`           | `packages/demo-agent/` | Example API server for testing                                             |
+| `agentaudit-dashboard` | `Frontend/`            | Next.js 16 dashboard with on-chain data                                    |
 
 ---
 
 ## Development
 
+### Prerequisites
+
+- Node.js >= 20
+- pnpm >= 9 (`npm i -g pnpm`)
+
+### Setup
+
 ```bash
-# Install dependencies
+# Clone
+git clone https://github.com/dhanush-adi/AgentAudit.git
+cd AgentAudit
+
+# Install
 pnpm install
 
-# Build all packages
-pnpm build
+# Configure
+cp .env.example .env
+# Edit .env with your values
+```
 
-# Run all tests
-pnpm test
+### Commands
 
-# Lint & format
-pnpm lint
-pnpm format
+```bash
+pnpm build            # Build all packages
+pnpm test             # Run all tests
+pnpm lint             # Lint source files
+pnpm typecheck        # Type-check all packages
 
-# Type check
-pnpm typecheck
-
-# Start development
-pnpm dev              # All packages
-pnpm dev:frontend     # Dashboard only
-pnpm dev:demo         # Demo agent only
+pnpm dev              # Start all packages in dev mode
+pnpm dev:frontend     # Dashboard only (port 3000)
+pnpm dev:demo         # Demo agent only (port 3001)
 pnpm dev:contracts    # Local Hardhat node
 ```
+
+### Running Locally
+
+```bash
+# Terminal 1: Start demo agent
+pnpm dev:demo
+
+# Terminal 2: Start dashboard
+pnpm dev:frontend
+
+# Test the payment gate
+curl http://localhost:3001/analyze
+# → 402 Payment Required (x402 demand)
+
+# Test public endpoints
+curl http://localhost:3001/health
+# → {"status": "ok", ...}
+
+# Dashboard
+open http://localhost:3000/dashboard
+```
+
+---
+
+## Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for full instructions.
+
+### Vercel (Dashboard)
+
+```bash
+# Set Root Directory to ./Frontend in Vercel dashboard
+# Add environment variables:
+NEXT_PUBLIC_AGENT_API_URL=https://your-agent-url.com
+```
+
+### Docker (Demo Agent)
+
+```bash
+docker build -t agentaudit .
+docker run -p 3000:3000 agentaudit
+```
+
+---
+
+## Testing
+
+```bash
+# Middleware tests (24 tests)
+cd packages/middleware && pnpm test
+
+# Contract tests
+cd packages/contracts && npx hardhat test
+```
+
+**Test coverage:**
+
+- `x402.test.ts` — payment verification, settlement, 402 response building
+- `logger.test.ts` — console logging, webhook delivery
+- `index.test.ts` — middleware integration, error handling
 
 ---
 
@@ -206,10 +287,14 @@ pnpm dev:contracts    # Local Hardhat node
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions and coding conventions.
+1. Fork the repo
+2. Create your feature branch (`git checkout -b feature/name`)
+3. Run `pnpm lint` and `pnpm test`
+4. Commit (`git commit -m 'feat: description'`)
+5. Push and open a Pull Request
 
 ---
 
 ## License
 
-MIT © [AgentAudit](https://github.com/dhanush-adi/AgentAudit)
+MIT
